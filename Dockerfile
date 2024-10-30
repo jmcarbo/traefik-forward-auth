@@ -3,7 +3,9 @@
 # syntax=docker/dockerfile:1.4
 
 # Build stage
+
 FROM --platform=$BUILDPLATFORM golang:1.23-alpine AS builder
+LABEL org.opencontainers.image.source=https://github.com/jmcarbo/traefik-forward-auth
 
 # Setup
 RUN mkdir -p /app
@@ -20,7 +22,7 @@ RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH GO111MODULE=on go build -a -
 
 # Final stage
 FROM --platform=$TARGETPLATFORM scratch
-LABEL org.opencontainers.image.source="https://github.com/jmcarbo/traefik-forward-auth"
+LABEL org.opencontainers.image.source=https://github.com/jmcarbo/traefik-forward-auth
 
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /traefik-forward-auth ./
