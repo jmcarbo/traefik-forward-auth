@@ -1,6 +1,7 @@
 package tfa
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -92,9 +93,9 @@ func (s *Server) AuthHandler(providerName, rule string) http.HandlerFunc {
 		}
 
 		// Validate cookie
-		email, err := ValidateCookie(r, c)
+		email, token, err := ValidateCookie(r, c)
 		if err != nil {
-			if err.Error() == "Cookie has expired" {
+			if err.Error() == "cookie has expired" {
 				logger.Info("Cookie has expired")
 				s.authRedirect(logger, w, r, p)
 			} else {
@@ -114,7 +115,8 @@ func (s *Server) AuthHandler(providerName, rule string) http.HandlerFunc {
 
 		// Valid request
 		logger.Debug("Allowing valid request")
-		w.Header().Set("X-Forwarded-User", email)
+		w.Header().Add("X-Forwarded-User", email)
+		w.Header().Add("Authentication", fmt.Sprintf("Bearer %s", token))
 		w.WriteHeader(200)
 	}
 }
@@ -186,7 +188,7 @@ func (s *Server) AuthCallbackHandler() http.HandlerFunc {
 		}
 
 		// Generate cookie
-		http.SetCookie(w, MakeCookie(r, user.Email))
+		http.SetCookie(w, MakeCookie(r, user.Email, token))
 		logger.WithFields(logrus.Fields{
 			"provider": providerName,
 			"redirect": redirect,

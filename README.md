@@ -376,6 +376,7 @@ Note, if you pass both `whitelist` and `domain`, then the default behaviour is f
 ### Forwarded Headers
 
 The authenticated user is set in the `X-Forwarded-User` header, to pass this on add this to the `authResponseHeaders` config option in traefik, as shown below in the [Applying Authentication](#applying-authentication) section.
+The OIDC/JWT token is set in the `Authentication` header, to pass this on add this to the `authResponseHeaders` config option in traefik;
 
 ### Applying Authentication
 

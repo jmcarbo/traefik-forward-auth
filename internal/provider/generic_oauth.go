@@ -10,6 +10,8 @@ import (
 	"golang.org/x/oauth2"
 )
 
+var _ Provider = &GenericOAuth{}
+
 // GenericOAuth provider
 type GenericOAuth struct {
 	AuthURL      string   `long:"auth-url" env:"AUTH_URL" description:"Auth/Login URL"`

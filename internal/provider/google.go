@@ -8,6 +8,8 @@ import (
 	"net/url"
 )
 
+var _ Provider = &Google{}
+
 // Google provider
 type Google struct {
 	ClientID     string `long:"client-id" env:"CLIENT_ID" description:"Client ID"`

@@ -2,7 +2,7 @@ version: '3'
 
 services:
   traefik:
-    image: traefik:v2.2
+    image: traefik:v3.2
     command: --providers.docker
     ports:
       - "8085:80"
@@ -31,4 +31,3 @@ services:
       - "traefik.http.middlewares.traefik-forward-auth.forwardauth.address=http://traefik-forward-auth:4181"
       - "traefik.http.middlewares.traefik-forward-auth.forwardauth.authResponseHeaders=X-Forwarded-User, Authentication"
       - "traefik.http.services.traefik-forward-auth.loadbalancer.server.port=4181"
-
