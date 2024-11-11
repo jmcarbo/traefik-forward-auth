@@ -40,7 +40,7 @@ func TestOIDCGetLoginURL(t *testing.T) {
 	defer server.Close()
 
 	// Check url
-	uri, err := url.Parse(provider.GetLoginURL("http://example.com/_oauth", "state"))
+	uri, err := url.Parse(provider.GetLoginURL("http://example.com/_oauth", "state", ""))
 	assert.Nil(err)
 	assert.Equal(serverURL.Scheme, uri.Scheme)
 	assert.Equal(serverURL.Host, uri.Host)
@@ -66,7 +66,7 @@ func TestOIDCGetLoginURL(t *testing.T) {
 	provider.Resource = "resourcetest"
 
 	// Check url
-	uri, err = url.Parse(provider.GetLoginURL("http://example.com/_oauth", "state"))
+	uri, err = url.Parse(provider.GetLoginURL("http://example.com/_oauth", "state", ""))
 	assert.Nil(err)
 	assert.Equal(serverURL.Scheme, uri.Scheme)
 	assert.Equal(serverURL.Host, uri.Host)
@@ -100,7 +100,7 @@ func TestOIDCExchangeCode(t *testing.T) {
 	})
 	defer server.Close()
 
-	token, err := provider.ExchangeCode("http://example.com/_oauth", "code")
+	token, err := provider.ExchangeCode("http://example.com/_oauth", "code", "")
 	assert.Nil(err)
 	assert.Equal("id_123456789", token)
 }

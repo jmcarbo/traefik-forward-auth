@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"github.com/thomseddon/traefik-forward-auth/internal/provider"
@@ -121,9 +122,22 @@ func (s *Server) AuthHandler(providerName, rule string) http.HandlerFunc {
 	}
 }
 
+func getClientID(path string) string {
+	parts := strings.Split(path, "/")
+	if len(parts) > 1 && config.Multitenant {
+		return parts[0]
+	}
+
+	return ""
+}
+
 // AuthCallbackHandler Handles auth callback request
 func (s *Server) AuthCallbackHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		clientID := ""
+		if config.Multitenant {
+			clientID = getClientID(r.URL.Path)
+		}
 		// Logging setup
 		logger := s.logger(r, "AuthCallback", "default", "Handling callback")
 
@@ -138,7 +152,7 @@ func (s *Server) AuthCallbackHandler() http.HandlerFunc {
 		}
 
 		// Check for CSRF cookie
-		c, err := FindCSRFCookie(r, state)
+		c, err := FindCSRFCookie(r, state, clientID)
 		if err != nil {
 			logger.Info("Missing csrf cookie")
 			http.Error(w, "Not authorized", 401)
@@ -172,7 +186,7 @@ func (s *Server) AuthCallbackHandler() http.HandlerFunc {
 		http.SetCookie(w, ClearCSRFCookie(r, c))
 
 		// Exchange code for token
-		token, err := p.ExchangeCode(redirectUri(r), r.URL.Query().Get("code"))
+		token, err := p.ExchangeCode(redirectUri(r), r.URL.Query().Get("code"), clientID)
 		if err != nil {
 			logger.WithField("error", err).Error("Code exchange failed with provider")
 			http.Error(w, "Service unavailable", 503)
@@ -188,7 +202,7 @@ func (s *Server) AuthCallbackHandler() http.HandlerFunc {
 		}
 
 		// Generate cookie
-		http.SetCookie(w, MakeCookie(r, user.Email, token))
+		http.SetCookie(w, MakeCookie(r, user.Email, token, clientID))
 		logger.WithFields(logrus.Fields{
 			"provider": providerName,
 			"redirect": redirect,
@@ -226,8 +240,12 @@ func (s *Server) authRedirect(logger *logrus.Entry, w http.ResponseWriter, r *ht
 		return
 	}
 
+	clientID := ""
+	if config.Multitenant {
+		clientID = getClientID(r.URL.Path)
+	}
 	// Set the CSRF cookie
-	csrf := MakeCSRFCookie(r, nonce)
+	csrf := MakeCSRFCookie(r, nonce, clientID)
 	http.SetCookie(w, csrf)
 
 	if !config.InsecureCookie && r.Header.Get("X-Forwarded-Proto") != "https" {
@@ -237,7 +255,7 @@ func (s *Server) authRedirect(logger *logrus.Entry, w http.ResponseWriter, r *ht
 	}
 
 	// Forward them on
-	loginURL := p.GetLoginURL(redirectUri(r), MakeState(r, p, nonce))
+	loginURL := p.GetLoginURL(redirectUri(r), MakeState(r, p, nonce), clientID)
 	http.Redirect(w, r, loginURL, http.StatusTemporaryRedirect)
 
 	logger.WithFields(logrus.Fields{

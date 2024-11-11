@@ -98,7 +98,7 @@ func TestServerAuthHandlerInvalid(t *testing.T) {
 
 	// Should catch invalid cookie
 	req = newDefaultHttpRequest("/foo")
-	c := MakeCookie(req, "test@example.com", "oidc-12345678901234567890123456789012")
+	c := MakeCookie(req, "test@example.com", "oidc-12345678901234567890123456789012", "")
 	parts = strings.Split(c.Value, "|")
 	c.Value = fmt.Sprintf("bad|%s|%s", parts[1], parts[2])
 
@@ -107,7 +107,7 @@ func TestServerAuthHandlerInvalid(t *testing.T) {
 
 	// Should validate email
 	req = newDefaultHttpRequest("/foo")
-	c = MakeCookie(req, "test@example.com", "oidc-12345678901234567890123456789012")
+	c = MakeCookie(req, "test@example.com", "oidc-12345678901234567890123456789012", "")
 	config.Domains = []string{"test.com"}
 
 	res, _ = doHttpRequest(req, c)
@@ -122,7 +122,7 @@ func TestServerAuthHandlerExpired(t *testing.T) {
 
 	// Should redirect expired cookie
 	req := newHTTPRequest("GET", "http://example.com/foo")
-	c := MakeCookie(req, "test@example.com", "oidc-12345678901234567890123456789012")
+	c := MakeCookie(req, "test@example.com", "oidc-12345678901234567890123456789012", "")
 	res, _ := doHttpRequest(req, c)
 	require.Equal(t, 307, res.StatusCode, "request with expired cookie should be redirected")
 
@@ -148,7 +148,7 @@ func TestServerAuthHandlerValid(t *testing.T) {
 
 	// Should allow valid request email
 	req := newHTTPRequest("GET", "http://example.com/foo")
-	c := MakeCookie(req, "test@example.com", "oidc-12345678901234567890123456789012")
+	c := MakeCookie(req, "test@example.com", "oidc-12345678901234567890123456789012", "")
 	config.Domains = []string{}
 
 	res, _ := doHttpRequest(req, c)
@@ -187,19 +187,19 @@ func TestServerAuthCallback(t *testing.T) {
 	// Should catch invalid csrf cookie
 	nonce := "12345678901234567890123456789012"
 	req = newHTTPRequest("GET", "http://example.com/_oauth?state="+nonce+":http://redirect")
-	c := MakeCSRFCookie(req, "nononononononononononononononono")
+	c := MakeCSRFCookie(req, "nononononononononononononononono", "")
 	res, _ = doHttpRequest(req, c)
 	assert.Equal(401, res.StatusCode, "auth callback with invalid cookie shouldn't be authorised")
 
 	// Should catch invalid provider cookie
 	req = newHTTPRequest("GET", "http://example.com/_oauth?state="+nonce+":invalid:http://redirect")
-	c = MakeCSRFCookie(req, nonce)
+	c = MakeCSRFCookie(req, nonce, "")
 	res, _ = doHttpRequest(req, c)
 	assert.Equal(401, res.StatusCode, "auth callback with invalid provider shouldn't be authorised")
 
 	// Should redirect valid request
 	req = newHTTPRequest("GET", "http://example.com/_oauth?state="+nonce+":google:http://redirect")
-	c = MakeCSRFCookie(req, nonce)
+	c = MakeCSRFCookie(req, nonce, "")
 	res, _ = doHttpRequest(req, c)
 	require.Equal(307, res.StatusCode, "valid auth callback should be allowed")
 
@@ -229,7 +229,7 @@ func TestServerAuthCallbackExchangeFailure(t *testing.T) {
 
 	// Should handle failed code exchange
 	req := newDefaultHttpRequest("/_oauth?state=12345678901234567890123456789012:google:http://redirect")
-	c := MakeCSRFCookie(req, "12345678901234567890123456789012")
+	c := MakeCSRFCookie(req, "12345678901234567890123456789012", "")
 	res, _ := doHttpRequest(req, c)
 	assert.Equal(503, res.StatusCode, "auth callback should handle failed code exchange")
 }
@@ -256,7 +256,7 @@ func TestServerAuthCallbackUserFailure(t *testing.T) {
 
 	// Should handle failed user request
 	req := newDefaultHttpRequest("/_oauth?state=12345678901234567890123456789012:google:http://redirect")
-	c := MakeCSRFCookie(req, "12345678901234567890123456789012")
+	c := MakeCSRFCookie(req, "12345678901234567890123456789012", "")
 	res, _ := doHttpRequest(req, c)
 	assert.Equal(503, res.StatusCode, "auth callback should handle failed user request")
 }

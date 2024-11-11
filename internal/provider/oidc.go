@@ -62,13 +62,13 @@ func (o *OIDC) Setup() error {
 }
 
 // GetLoginURL provides the login url for the given redirect uri and state
-func (o *OIDC) GetLoginURL(redirectURI, state string) string {
-	return o.OAuthGetLoginURL(redirectURI, state)
+func (o *OIDC) GetLoginURL(redirectURI, state, clientID string) string {
+	return o.OAuthGetLoginURL(redirectURI, state, clientID)
 }
 
 // ExchangeCode exchanges the given redirect uri and code for a token
-func (o *OIDC) ExchangeCode(redirectURI, code string) (string, error) {
-	token, err := o.OAuthExchangeCode(redirectURI, code)
+func (o *OIDC) ExchangeCode(redirectURI, code, clientID string) (string, error) {
+	token, err := o.OAuthExchangeCode(redirectURI, code, clientID)
 	if err != nil {
 		return "", err
 	}

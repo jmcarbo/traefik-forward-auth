@@ -1,33 +1,60 @@
-version: '3'
-
 services:
   traefik:
     image: traefik:v3.2
-    command: --providers.docker
+    command:
+      - --providers.docker
     ports:
       - "8085:80"
-      - "8086:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-
-  whoami:
-    image: containous/whoami
-    labels:
-      - "traefik.http.routers.whoami.rule=Host(`whoami.localhost.com`)"
-      - "traefik.http.routers.whoami.middlewares=traefik-forward-auth"
+    depends_on:
+      - traefik-forward-auth
 
   traefik-forward-auth:
-    image: thomseddon/traefik-forward-auth:2
+    image: ghcr.io/jmcarbo/traefik-forward-auth:1.0.2
+    platform: linux/amd64
     environment:
       - DEFAULT_PROVIDER=oidc
-      - PROVIDERS_OIDC_ISSUER_URL=https://login.microsoftonline.com/{tenant}
-      - PROVIDERS_OIDC_CLIENT_ID=your-client-id
-      - PROVIDERS_OIDC_CLIENT_SECRET=your-client-secret
+      - PROVIDERS_OIDC_ISSUER_URL=http://keycloak.192.168.1.39.nip.io:8085/realms/oe
+      - PROVIDERS_OIDC_CLIENT_ID=myclient
+      - PROVIDERS_OIDC_CLIENT_SECRET=XcvsSJ9GCOHciuvaOLswJS73AFk7c8Gx
       - SECRET=something-random
-      # INSECURE_COOKIE is required if not using a https entrypoint
-      - INSECURE_COOKIE=true
-      - LOG_LEVEL=debug
+      - INSECURE_COOKIE=true # Example assumes no https, do not use in production
     labels:
       - "traefik.http.middlewares.traefik-forward-auth.forwardauth.address=http://traefik-forward-auth:4181"
       - "traefik.http.middlewares.traefik-forward-auth.forwardauth.authResponseHeaders=X-Forwarded-User, Authentication"
       - "traefik.http.services.traefik-forward-auth.loadbalancer.server.port=4181"
+    depends_on:
+      - keycloak
+    restart: on-failure
+
+
+  keycloak:
+    # To export REALM, remember to set static secret for clients
+    # /opt/keycloak/bin/kc.sh export --dir /opt/keycloak/data/import --users realm_file --realm {your-realms-id}
+    image: quay.io/keycloak/keycloak:26.0.4
+    container_name: keycloak
+    command:
+      - "start-dev"
+      - "--import-realm"
+    env_file: keycloak.env
+    ports:
+      - "8082:8080"
+    labels:
+      - "traefik.http.routers.keycloak.rule=Host(`keycloak.192.168.1.39.nip.io`)"
+      - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
+    volumes:
+      - ./keycloak-realms:/opt/keycloak/data/import
+
+  whoami:
+    image: containous/whoami
+    ports:
+      - "8080:80"
+    labels:
+      - "traefik.http.routers.whoami.rule=Host(`whoami.192.168.1.39.nip.io`)"
+      - "traefik.http.services.whoami.loadbalancer.server.port=80"
+      - "traefik.http.routers.whoami.middlewares=traefik-forward-auth"
+    depends_on:
+      - traefik
+      - traefik-forward-auth
+

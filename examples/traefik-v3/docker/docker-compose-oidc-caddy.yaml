@@ -1,0 +1,14 @@
+include:
+  - docker-compose-oidc.yaml
+services:
+  caddy:
+      image: caddy:2.4.5
+      ports:
+      - 9443:443
+      volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./:/var/www/html
+      labels:
+      - "traefik.http.routers.caddy.rule=Host(`caddy.192.168.1.39.nip.io`)"
+      - "traefik.http.routers.caddy.tls=false"
+      - "traefik.http.services.caddy.loadbalancer.server.port=80"

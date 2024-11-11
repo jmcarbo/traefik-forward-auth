@@ -1,0 +1,7 @@
+whoami2.192.168.1.39.nip.io {
+tls internal
+//root * /var/www/html
+//file_server
+reverse_proxy localhost:8080
+}
+

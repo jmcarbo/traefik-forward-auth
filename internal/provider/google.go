@@ -55,7 +55,7 @@ func (g *Google) Setup() error {
 }
 
 // GetLoginURL provides the login url for the given redirect uri and state
-func (g *Google) GetLoginURL(redirectURI, state string) string {
+func (g *Google) GetLoginURL(redirectURI, state, clientID string) string {
 	q := url.Values{}
 	q.Set("client_id", g.ClientID)
 	q.Set("response_type", "code")
@@ -74,7 +74,7 @@ func (g *Google) GetLoginURL(redirectURI, state string) string {
 }
 
 // ExchangeCode exchanges the given redirect uri and code for a token
-func (g *Google) ExchangeCode(redirectURI, code string) (string, error) {
+func (g *Google) ExchangeCode(redirectURI, code, clientID string) (string, error) {
 	form := url.Values{}
 	form.Set("client_id", g.ClientID)
 	form.Set("client_secret", g.ClientSecret)

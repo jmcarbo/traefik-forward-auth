@@ -2,6 +2,8 @@ package provider
 
 import (
 	"context"
+	"net/url"
+
 	// "net/url"
 
 	"golang.org/x/oauth2"
@@ -17,8 +19,8 @@ type Providers struct {
 // Provider is used to authenticate users
 type Provider interface {
 	Name() string
-	GetLoginURL(redirectURI, state string) string
-	ExchangeCode(redirectURI, code string) (string, error)
+	GetLoginURL(redirectURI, state, clientID string) string
+	ExchangeCode(redirectURI, code, clientID string) (string, error)
 	GetUser(token string) (User, error)
 	Setup() error
 }
@@ -49,18 +51,29 @@ func (p *OAuthProvider) ConfigCopy(redirectURI string) oauth2.Config {
 }
 
 // OAuthGetLoginURL provides a base "GetLoginURL" for proiders using OAauth2
-func (p *OAuthProvider) OAuthGetLoginURL(redirectURI, state string) string {
+func (p *OAuthProvider) OAuthGetLoginURL(redirectURI, state, clientID string) string {
 	config := p.ConfigCopy(redirectURI)
 
+	var opts []oauth2.AuthCodeOption
 	if p.Resource != "" {
-		return config.AuthCodeURL(state, oauth2.SetAuthURLParam("resource", p.Resource))
+		opts = append(opts, oauth2.SetAuthURLParam("resource", p.Resource))
 	}
 
-	return config.AuthCodeURL(state)
+	strURL := config.AuthCodeURL(state, opts...)
+	u, _ := url.Parse(strURL)
+	if clientID != "" {
+		q := u.Query()
+		q.Set("client_id", clientID)
+		u.RawQuery = q.Encode()
+	}
+	return u.String()
 }
 
 // OAuthExchangeCode provides a base "ExchangeCode" for proiders using OAauth2
-func (p *OAuthProvider) OAuthExchangeCode(redirectURI, code string) (*oauth2.Token, error) {
+func (p *OAuthProvider) OAuthExchangeCode(redirectURI, code, clientID string) (*oauth2.Token, error) {
 	config := p.ConfigCopy(redirectURI)
+	if clientID != "" {
+		config.ClientID = clientID
+	}
 	return config.Exchange(p.ctx, code)
 }

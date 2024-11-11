@@ -162,13 +162,13 @@ func useAuthDomain(r *http.Request) (bool, string) {
 // Cookie methods
 
 // MakeCookie creates an auth cookie
-func MakeCookie(r *http.Request, email, token string) *http.Cookie {
+func MakeCookie(r *http.Request, email, token, clientID string) *http.Cookie {
 	expires := cookieExpiry()
 	mac := cookieSignature(r, email, token, fmt.Sprintf("%d", expires.Unix()))
 	value := fmt.Sprintf("%s|%d|%s|%s", mac, expires.Unix(), email, token)
 
 	return &http.Cookie{
-		Name:     config.CookieName,
+		Name:     config.CookieName + clientID,
 		Value:    value,
 		Path:     "/",
 		Domain:   cookieDomain(r),
@@ -191,8 +191,8 @@ func ClearCookie(r *http.Request) *http.Cookie {
 	}
 }
 
-func buildCSRFCookieName(nonce string) string {
-	return config.CSRFCookieName + "_" + nonce[:6]
+func buildCSRFCookieName(nonce, clientID string) string {
+	return config.CSRFCookieName + "_" + nonce[:6] + clientID
 }
 
 // MakeCSRFCookie makes a csrf cookie (used during login only)
@@ -200,9 +200,9 @@ func buildCSRFCookieName(nonce string) string {
 // Note, CSRF cookies live shorter than auth cookies, a fixed 1h.
 // That's because some CSRF cookies may belong to auth flows that don't complete
 // and thus may not get cleared by ClearCookie.
-func MakeCSRFCookie(r *http.Request, nonce string) *http.Cookie {
+func MakeCSRFCookie(r *http.Request, nonce, clientID string) *http.Cookie {
 	return &http.Cookie{
-		Name:     buildCSRFCookieName(nonce),
+		Name:     buildCSRFCookieName(nonce, clientID),
 		Value:    nonce,
 		Path:     "/",
 		Domain:   csrfCookieDomain(r),
@@ -226,9 +226,9 @@ func ClearCSRFCookie(r *http.Request, c *http.Cookie) *http.Cookie {
 }
 
 // FindCSRFCookie extracts the CSRF cookie from the request based on state.
-func FindCSRFCookie(r *http.Request, state string) (c *http.Cookie, err error) {
+func FindCSRFCookie(r *http.Request, state, clientID string) (c *http.Cookie, err error) {
 	// Check for CSRF cookie
-	return r.Cookie(buildCSRFCookieName(state))
+	return r.Cookie(buildCSRFCookieName(state, clientID))
 }
 
 // ValidateCSRFCookie validates the csrf cookie against state
